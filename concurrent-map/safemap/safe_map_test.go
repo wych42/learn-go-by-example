@@ -2,7 +2,7 @@ package safemap
 
 import (
 	"fmt"
-	"reflect"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -24,9 +24,9 @@ type bench struct {
 }
 
 func benchMap(b *testing.B, bench bench) {
-	for _, m := range [...]mapInterface{&SafeMap{}, &sync.Map{}} {
+	for _, m := range [...]mapInterface{NewWrapConcurrentMap(), NewSafeMap(), &sync.Map{}} {
 		b.Run(fmt.Sprintf("%T", m), func(b *testing.B) {
-			m = reflect.New(reflect.TypeOf(m).Elem()).Interface().(mapInterface)
+			// m = reflect.New(reflect.TypeOf(m).Elem()).Interface().(mapInterface)
 			if bench.setup != nil {
 				bench.setup(b, m)
 			}
@@ -48,17 +48,17 @@ func BenchmarkLoadMostlyHits(b *testing.B) {
 	benchMap(b, bench{
 		setup: func(_ *testing.B, m mapInterface) {
 			for i := 0; i < hits; i++ {
-				m.LoadOrStore(i, i)
+				m.Store(strconv.Itoa(i), i)
 			}
 			// Prime the map to get it into a steady state.
 			for i := 0; i < hits*2; i++ {
-				m.Load(i % hits)
+				m.Load(strconv.Itoa(i % hits))
 			}
 		},
 
 		perG: func(b *testing.B, pb *testing.PB, i int, m mapInterface) {
 			for ; pb.Next(); i++ {
-				m.Load(i % (hits + misses))
+				m.Load(strconv.Itoa(i % (hits + misses)))
 			}
 		},
 	})
@@ -69,17 +69,17 @@ func BenchmarkLoadMostlyMisses(b *testing.B) {
 	benchMap(b, bench{
 		setup: func(_ *testing.B, m mapInterface) {
 			for i := 0; i < hits; i++ {
-				m.LoadOrStore(i, i)
+				m.Store(strconv.Itoa(i), i)
 			}
 			// Prime the map to get it into a steady state.
 			for i := 0; i < hits*2; i++ {
-				m.Load(i % hits)
+				m.Load(strconv.Itoa(i % hits))
 			}
 		},
 
 		perG: func(b *testing.B, pb *testing.PB, i int, m mapInterface) {
 			for ; pb.Next(); i++ {
-				m.Load(i % (hits + misses))
+				m.Load(strconv.Itoa(i % (hits + misses)))
 			}
 		},
 	})
@@ -91,11 +91,11 @@ func BenchmarkLoadOrStoreBalanced(b *testing.B) {
 	benchMap(b, bench{
 		setup: func(b *testing.B, m mapInterface) {
 			for i := 0; i < hits; i++ {
-				m.LoadOrStore(i, i)
+				m.Store(strconv.Itoa(i), i)
 			}
 			// Prime the map to get it into a steady state.
 			for i := 0; i < hits*2; i++ {
-				m.Load(i % hits)
+				m.Load(strconv.Itoa(i % hits))
 			}
 		},
 
@@ -103,13 +103,9 @@ func BenchmarkLoadOrStoreBalanced(b *testing.B) {
 			for ; pb.Next(); i++ {
 				j := i % (hits + misses)
 				if j < hits {
-					if _, ok := m.LoadOrStore(j, i); !ok {
-						b.Fatalf("unexpected miss for %v", j)
-					}
+					m.Load(strconv.Itoa((j)))
 				} else {
-					if v, loaded := m.LoadOrStore(i, i); loaded {
-						b.Fatalf("failed to store %v: existing value %v", i, v)
-					}
+					m.Store(strconv.Itoa(j), i)
 				}
 			}
 		},
