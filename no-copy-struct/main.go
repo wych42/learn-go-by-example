@@ -1,36 +1,34 @@
 package main
 
-import (
-	"fmt"
-	"sync"
-)
+import "fmt"
 
-type EmbedMutex struct {
-	sync.Mutex
-	ID int
+type T struct {
+	noCopy
+	A, B int
+}
+
+func print(t T) {
+	fmt.Printf("%d%d", t.A, t.B)
+
+}
+func main() {
+	a := T{A: 1, B: 9}
+	b := a
+	print(a)
+	b.A = 2
+	b.B = 6
+	print(b)
 }
 
 type noCopy struct{}
 
-func (i *noCopy) Lock()   {}
-func (i *noCopy) Unlock() {}
-
-type EmbedNoCopy struct {
-	noCopy
-	ID int
-}
-
-func main() {
-	// m := EmbedMutex{ID: 1}
-	// m1 := m
-	// fmt.Println(m, m1)
-
-	nc := EmbedNoCopy{ID: 2}
-	nc1 := nc
-	fmt.Println(nc, nc1)
-}
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
 
 /*
+$ go run no-copy-struct/main.go
+1926
+
 $ go vet no-copy-struct/main.go
 # command-line-arguments
 no-copy-struct/main.go:29:9: assignment copies lock value to nc1: command-line-arguments.EmbedNoCopy
