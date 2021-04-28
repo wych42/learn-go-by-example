@@ -31,7 +31,8 @@ $ go run no-copy-struct/main.go
 
 $ go vet no-copy-struct/main.go
 # command-line-arguments
-no-copy-struct/main.go:29:9: assignment copies lock value to nc1: command-line-arguments.EmbedNoCopy
-no-copy-struct/main.go:30:14: call of fmt.Println copies lock value: command-line-arguments.EmbedNoCopy
-no-copy-struct/main.go:30:18: call of fmt.Println copies lock value: command-line-arguments.EmbedNoCopy
+no-copy-struct/main.go:10:14: print passes lock by value: command-line-arguments.T
+no-copy-struct/main.go:16:7: assignment copies lock value to b: command-line-arguments.T
+no-copy-struct/main.go:17:8: call of print copies lock value: command-line-arguments.T
+no-copy-struct/main.go:20:8: call of print copies lock value: command-line-arguments.T
 */
